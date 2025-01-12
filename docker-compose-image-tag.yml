@@ -21,8 +21,6 @@
 # create you own docker environment file (docker/.env) with your own
 # unique random secure passwords and SECRET_KEY.
 # -----------------------------------------------------------------------
-version: "3.9"
-
 x-superset-image: &superset-image 
   apachesuperset.docker.scarf.sh/apache/superset:${TAG:-latest-dev}
 
@@ -40,8 +38,8 @@ services:
 
   db:
     env_file:
-      - docker/.env # default
-      - docker/.env-local # optional override
+      - docker/.env
+      - docker/.env-local # optional
     image: postgres:15
     container_name: superset_db
     restart: unless-stopped
@@ -51,8 +49,8 @@ services:
 
   superset:
     env_file:
-      - docker/.env # default
-      - docker/.env-local # optional override
+      - docker/.env
+      - docker/.env-local # optional
     image: *superset-image
     container_name: superset_app
     command: ["/app/docker/docker-bootstrap.sh", "app-gunicorn"]
@@ -73,8 +71,8 @@ services:
     container_name: superset_init
     command: ["/app/docker/docker-init.sh"]
     env_file:
-      - docker/.env # default
-      - docker/.env-local # optional override
+      - docker/.env
+      - docker/.env-local # optional
     depends_on:
       - db
       - redis
@@ -84,44 +82,6 @@ services:
       disable: true
     environment:
       SUPERSET_LOAD_EXAMPLES: "${SUPERSET_LOAD_EXAMPLES:-yes}"
-      SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
-
-  superset-worker:
-    image: *superset-image
-    container_name: superset_worker
-    command: ["/app/docker/docker-bootstrap.sh", "worker"]
-    env_file:
-      - docker/.env # default
-      - docker/.env-local # optional override
-    restart: unless-stopped
-    depends_on:
-      - superset-init
-    user: "root"
-    volumes: *superset-volumes
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "celery -A superset.tasks.celery_app:app inspect ping -d celery@$$HOSTNAME",
-        ]
-    environment:
-      SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
-
-  superset-worker-beat:
-    image: *superset-image
-    container_name: superset_worker_beat
-    command: ["/app/docker/docker-bootstrap.sh", "beat"]
-    env_file:
-      - docker/.env # default
-      - docker/.env-local # optional override
-    restart: unless-stopped
-    depends_on:
-      - superset-init
-    user: "root"
-    volumes: *superset-volumes
-    healthcheck:
-      disable: true
-    environment:
       SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
 
 volumes:
